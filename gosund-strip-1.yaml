@@ -1,0 +1,191 @@
+substitutions:
+  device_name: gosund_strip_1
+  friendly_name: gosund-strip-1
+  plug_name: gosund_strip_1
+
+esphome:
+  name: "${friendly_name}"
+
+esp8266:
+  board: esp8285
+  restore_from_flash: true
+
+preferences:
+  flash_write_interval: 5min
+
+# Enable Home Assistant API
+api:
+  password: ""
+  password: !secret api_pw
+
+ota:
+  password: ""
+  password: !secret api_pw
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${device_name} Fallback Hotspot"
+    password: !secret wifi_backup_pw
+
+captive_portal:
+
+  # Enable logging
+logger:
+  # Disable logging over USB
+  baud_rate: 0
+
+web_server:
+  port: 80
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+# Text sensors with general information
+text_sensor:
+  - platform: version
+    name: ${friendly_name} Version
+  - platform: wifi_info
+    ip_address:
+      name: ${friendly_name} IP Address
+
+status_led:
+  pin:
+    number: GPIO02
+    inverted: True
+
+# https://esphome.io/components/sensor/cse7766.html
+uart:
+  rx_pin: GPIO03
+  #tx_pin: GPIO01
+  baud_rate: 4800
+
+sensor:
+  # Uptime sensor
+  - platform: uptime
+    name: ${friendly_name} Uptime
+    update_interval: 5min
+  # WiFi Signal sensor
+  - platform: wifi_signal
+    name: ${friendly_name} Wifi Signal
+    update_interval: 1min
+  - platform: cse7766
+    current:
+      name: "${plug_name} - Ampere"
+        #unit_of_measurement: A
+      accuracy_decimals: 3
+        #icon: mdi:flash-outline
+      filters:
+        - throttle_average: 60s
+    voltage:
+      name: "${plug_name} - Volt"
+        #unit_of_measurement: V
+      accuracy_decimals: 1
+        #icon: mdi:flash-outline
+        #filters:
+        #  - lambda: return x * 2.34245;
+          #update_interval: 3s
+      filters:
+        - throttle_average: 60s
+    power:
+      name: "${plug_name} - Watt"
+        #unit_of_measurement: W
+      id: "${plug_name}_Wattage"
+        #icon: mdi:flash-outline
+        #filters:
+        #- lambda: return x * 2.34245;
+      filters:
+        - throttle_average: 60s
+  - platform: total_daily_energy
+    name: "${plug_name} - Daily energy"
+    power_id: "${plug_name}_Wattage"
+    filters:
+        # Multiplication factor from W to kW is 0.001
+        - multiply: 0.001
+    unit_of_measurement: kWh
+    icon: mdi:clock-alert
+  # Buttons are a resistance ladder
+  - platform: adc
+    pin: GPIO17
+    id: gpio17
+    internal: true
+    update_interval: 0.1s
+    filters:
+      - lambda: |-
+          if(x >= 0.60 && x < 0.90){
+            id(buttonrelay1).publish_state(true);
+          } else if(x >= 0.30 && x < 0.60){
+            id(buttonrelay2).publish_state(true);
+          }
+          else if(x > 0.10 && x < 0.30){
+            id(buttonrelay3).publish_state(true);
+          } else {
+            id(buttonrelay1).publish_state(false);
+            id(buttonrelay2).publish_state(false);
+            id(buttonrelay3).publish_state(false);
+          }
+          return{};
+
+binary_sensor:
+  - platform: gpio
+    id: button
+    internal: true
+    pin:
+      number: GPIO16
+        #mode: INPUT_PULLUP
+      inverted: true
+    #on_state:
+    on_press:
+      - switch.toggle: relay4
+  - platform: template
+    id: buttonrelay1
+    internal: true
+    on_press:
+      - switch.toggle: relay1
+    filters:
+      - delayed_off: 100ms
+  - platform: template
+    id: buttonrelay2
+    internal: true
+    on_press:
+      - switch.toggle: relay2
+    filters:
+      - delayed_off: 100ms
+  - platform: template
+    id: buttonrelay3
+    internal: true
+    on_press:
+      - switch.toggle: relay3
+    filters:
+      - delayed_off: 100ms
+
+switch:
+  - platform: gpio
+    pin: GPIO14
+    id: relay1
+    restore_mode: RESTORE_DEFAULT_ON
+    name: '${plug_name} - Switch1'
+    icon: mdi:power-socket-eu
+  - platform: gpio
+    pin: GPIO12
+    id: relay2
+    restore_mode: RESTORE_DEFAULT_ON
+    name: '${plug_name} - Switch2'
+    icon: mdi:power-socket-eu
+  - platform: gpio
+    pin: GPIO13
+    id: relay3
+    restore_mode: RESTORE_DEFAULT_ON
+    name: '${plug_name} - Switch3'
+    icon: mdi:power-socket-eu
+  - platform: gpio
+    pin: GPIO05
+    id: relay4
+    restore_mode: RESTORE_DEFAULT_ON
+    name: '${plug_name} - Switch USB'
+    icon: mdi:power-socket-eu
+    inverted: yes

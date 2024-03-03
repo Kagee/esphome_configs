@@ -1,0 +1,168 @@
+substitutions:
+  current_res: "0.00280"
+  voltage_div: "648"
+  devicename: "nous_socket_1"
+  dn: "NS1"
+
+esphome:
+  name: "nous-socket-1"
+
+esp8266:
+  board: esp8285
+  restore_from_flash: true
+
+preferences:
+  flash_write_interval: 5min
+
+globals:
+   - id: blink_led
+     type: bool
+     restore_value: no 
+     initial_value: "false"
+
+interval:
+  - interval: 0.5s
+    then:
+      - if:
+          condition:
+            # Only blink if blink_led==true
+            lambda: 'return id(blink_led);'
+          then:
+            - switch.toggle: led_red
+            - light.toggle: led_blue
+
+logger:
+  baud_rate: 0
+
+api:
+  password: !secret api_pw
+
+ota:
+  password: !secret ota_pw
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  ap:
+    ssid: "${devicename} Fallback Hotspot"
+    password: !secret wifi_backup_pw
+
+web_server:
+  port: 80
+
+captive_portal:
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+text_sensor:
+  - platform: version
+    name: "${dn} - Version"
+    icon: mdi:cube-outline
+  - platform: wifi_info
+    ip_address:
+      name: "${dn} IP Address"
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: True
+    id: "${dn}_button"
+    on_press:
+      - switch.toggle: button_switch
+
+sensor:
+  - platform: hlw8012
+    sel_pin:
+      number: GPIO12
+      inverted: True
+    cf_pin: GPIO05
+    cf1_pin: GPIO04
+    change_mode_every: 4
+    current_resistor: ${current_res}
+    voltage_divider: ${voltage_div}
+    update_interval: 120s
+
+    current:
+      name: "${dn} - Ampere"
+      unit_of_measurement: A
+      accuracy_decimals: 3
+      icon: mdi:current-ac
+
+    voltage:
+      name: "${dn} - Volt"
+      unit_of_measurement: V
+      accuracy_decimals: 1
+      icon: mdi:flash-outline
+
+    power:
+      name: "${dn} - Watt"
+      unit_of_measurement: W
+      id: "power_wattage"
+      icon: mdi:gauge
+
+light:
+  - platform: status_led
+    name: "Switch state"
+    internal: true
+    pin: 
+      number: GPIO02
+      inverted: true
+    id: led_blue
+    restore_mode: ALWAYS_OFF
+
+switch:
+  - platform: gpio
+    id: led_red
+    name: "Red led"
+    internal: true
+    pin: 
+      number: GPIO00
+      inverted: true
+    restore_mode: ALWAYS_OFF
+
+  - platform: template
+    name: "${dn} - Switch"
+    icon: mdi:power
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    lambda: 'return id(relay).state;'
+    id: button_switch
+    turn_on_action:
+      - switch.turn_on: relay
+      - switch.turn_on: led_red
+    turn_off_action:
+      - switch.turn_off: relay
+      - switch.turn_off: led_red
+
+  - platform: gpio
+    pin: GPIO15
+    id: relay
+    restore_mode: ALWAYS_OFF
+
+  - platform: template
+    name: 'poweroff_60s'
+    internal: true
+    restore_mode: ALWAYS_OFF
+    turn_on_action:
+      - if:
+          condition:
+            # Only activate if relay on
+            lambda: 'return id(relay).state;'
+          then:
+            - switch.turn_on: led_red
+            - light.turn_off: led_blue
+            - globals.set:
+                id: blink_led
+                value: 'true'
+            - delay: 59s
+            - globals.set:
+                id: blink_led
+                value: 'false'
+            - switch.turn_off: button_switch
+          else:
+            - logger.log: "Ignoring poweroff_60s.turn_on, relay is already off"
