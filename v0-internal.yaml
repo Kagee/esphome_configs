@@ -43,5 +43,5 @@ binary_sensor:
     filters:
        - delayed_off: 1000ms
     on_press:
-      - http_request.get:
+      - http_request.post:
           url: http://v0-power.intern.hild1.no/switch/v0_power_relay/turn_off
