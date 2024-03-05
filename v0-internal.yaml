@@ -1,0 +1,47 @@
+esphome:
+  name: v0-internal
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+  #  baud_rate: 0
+
+# Enable Home Assistant API
+api:
+  password: !secret api_pw
+
+ota:
+  password: !secret ota_pw
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+  domain: .intern.hild1.no
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "V0-Internal Fallback Hotspot"
+    password: !secret wifi_backup_pw
+
+captive_portal:
+
+web_server:
+  port: 80
+
+http_request:
+  useragent: "esphome/v0-internal"
+  timeout: 10s
+
+binary_sensor:
+  - platform: gpio
+    name: "RPI Ready to lose power"
+    pin:
+      number: GPIO3
+      mode:
+        input: true
+    filters:
+       - delayed_off: 1000ms
+    on_press:
+      - http_request.get:
+          url: http://v0-power.intern.hild1.no/switch/v0_power_relay/turn_off
