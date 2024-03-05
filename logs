@@ -1,0 +1,2 @@
+#! /bin/bash
+podman run --rm -v "${PWD}":/config -it ghcr.io/esphome/esphome logs $1
