@@ -16,9 +16,9 @@ ota:
   password: !secret ota_pw
 
 wifi:
-  ssid: !secret wifi_ssid
+  ssid: !secret wifi_ssid_test
   password: !secret wifi_pw
-  domain: .intern.hild1.no
+  domain: .test.hild1.no
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "V0-Internal Fallback Hotspot"
