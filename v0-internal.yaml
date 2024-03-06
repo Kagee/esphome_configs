@@ -31,7 +31,8 @@ web_server:
 
 http_request:
   useragent: "esphome/v0-internal"
-  timeout: 10s
+  timeout: 2s
+  esp8266_disable_ssl_support: true
 
 binary_sensor:
   - platform: gpio
@@ -42,6 +43,11 @@ binary_sensor:
         input: true
     filters:
        - delayed_off: 1000ms
+       - autorepeat:
+         # After 3 seconds i should already be turned off
+         - delay: 3s
+           time_off: 100ms
+           time_on: 100ms
     on_press:
       - http_request.post:
           url: http://v0-power.intern.hild1.no/switch/v0_power_relay/turn_off
