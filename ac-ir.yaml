@@ -30,14 +30,13 @@ captive_portal:
 web_server:
   port: 80
   
-remote_receiver:
-  id: rr
-  pin:
-    number: GPIO14
-    inverted: true
-  dump: all
+# remote_receiver:
+#   id: rr
+#   pin:
+#     number: GPIO14
+#     inverted: true
+#   dump: all
   
-# Example configuration entry
 remote_transmitter:
   id: rt
   pin: 
@@ -46,8 +45,17 @@ remote_transmitter:
   carrier_duty_percent: 50%
 
 climate:
-  - platform: midea_ir
-    name: "Bedroom AC"
+  - platform: coolix
+    # no presets avaliable
+    # swing mode off/vertical (sends vertical followed by off, does not remeber state?)
+    name: "Bedroom AC Coolix"
     transmitter_id: rt
     supports_heat: false
-    receiver_id: rr
+
+  - platform: midea_ir
+    # preset: sleep, boost. sleep works, boost does nothing. 
+    # swing mode off/vertical (sends vertical followed by off, does not remeber state?)
+    # swing mode not visible in mobile app?
+    name: "Bedroom AC Midea"
+    transmitter_id: rt
+    supports_heat: false
