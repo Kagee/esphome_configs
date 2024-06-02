@@ -31,6 +31,7 @@ web_server:
   port: 80
   
 remote_receiver:
+  id: rr
   pin:
     number: GPIO14
     inverted: true
@@ -38,11 +39,15 @@ remote_receiver:
   
 # Example configuration entry
 remote_transmitter:
+  id: rt
   pin: 
     number: GPIO04
+    # inverted: false # works in both?
   carrier_duty_percent: 50%
 
 climate:
-  - platform: toshiba
-    name: "Living Room AC"
-    model: "GENERIC"
+  - platform: midea_ir
+    name: "Bedroom AC"
+    transmitter_id: rt
+    supports_heat: false
+    receiver_id: rr
